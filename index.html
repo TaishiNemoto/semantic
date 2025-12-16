@@ -2,285 +2,149 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semantic Gaussian Nexus</title>
+    <title>AI City Walk (GitHub Pages)</title>
     <style>
-        /* ベーススタイル */
-        body { margin: 0; overflow: hidden; background: #0d0d0d; font-family: 'Inter', sans-serif; color: white; }
-        
-        /* --- アップロード画面 (初期表示) --- */
-        #upload-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 200; transition: opacity 0.5s;
-        }
-        #drop-zone {
-            width: 60%; max-width: 600px; padding: 60px;
-            border: 2px dashed #444; border-radius: 20px; text-align: center;
-            background: rgba(255,255,255,0.03); transition: all 0.3s;
-        }
-        #drop-zone.dragover { border-color: #00e5ff; background: rgba(0, 229, 255, 0.1); transform: scale(1.02); }
-        
-        h1 { margin: 0 0 10px 0; font-weight: 300; letter-spacing: 2px; color: #fff; }
-        p { color: #888; margin-bottom: 20px; }
-        .highlight { color: #00e5ff; font-weight: bold; }
-
-        /* ファイル選択ボタン */
-        input[type="file"] { display: none; }
-        .btn-select {
-            display: inline-block; padding: 12px 40px; background: #00e5ff; color: #000;
-            border-radius: 50px; font-weight: bold; cursor: pointer; transition: background 0.2s;
-            font-size: 1rem; letter-spacing: 1px;
-        }
-        .btn-select:hover { background: #99f2ff; }
-
-        /* --- メインUI (Viewer表示後) --- */
-        #ui-layer {
-            position: absolute; top: 20px; right: 20px; z-index: 100;
-            display: none; flex-direction: column; gap: 12px; align-items: flex-end;
-        }
-        
-        /* API入力欄 */
-        .api-input {
-            padding: 12px; border-radius: 10px; border: 1px solid #333;
-            background: rgba(0,0,0,0.6); color: white; width: 240px;
-            backdrop-filter: blur(10px);
-        }
-
-        /* 解析ボタン */
-        .btn-analyze {
-            padding: 12px 24px; background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white; border: none; border-radius: 50px; cursor: pointer;
-            font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: transform 0.2s; display: flex; align-items: center; gap: 8px;
-        }
-        .btn-analyze:hover { transform: scale(1.05); }
-        .btn-analyze:disabled { background: #444; cursor: not-allowed; }
-
-        /* リセットボタン */
-        .btn-reset {
-            background: transparent; border: 1px solid #444; color: #888;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;
-        }
-        .btn-reset:hover { color: white; border-color: white; }
-
-        /* --- 結果カード --- */
-        #info-card {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 15, 15, 0.9); padding: 25px;
-            border-radius: 16px; display: none; max-width: 90%; width: 420px;
-            backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            animation: slideUp 0.4s ease-out;
-        }
-        @keyframes slideUp { from { transform: translate(-50%, 50px); opacity: 0; } to { opacity: 1; } }
-        
-        #card-title { margin: 0 0 8px 0; color: #00e5ff; font-size: 1.2rem; }
-        #card-desc { margin: 0; font-size: 0.95rem; line-height: 1.6; color: #ccc; }
-
-        /* --- ローディングバー --- */
-        #loading-bar-container {
-            width: 100%; height: 4px; background: #333; margin-top: 20px;
-            border-radius: 2px; overflow: hidden; display: none;
-        }
-        #loading-bar { width: 0%; height: 100%; background: #00e5ff; transition: width 0.2s; }
-        #loading-text { margin-top: 10px; color: #00e5ff; font-size: 0.9rem; display: none;}
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+        #ui { position: absolute; bottom: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; }
+        #controls { pointer-events: auto; display: flex; gap: 10px; margin-bottom: 10px; }
+        input { padding: 10px; border-radius: 20px; border: none; width: 250px; outline: none; }
+        button { padding: 10px 20px; cursor: pointer; border-radius: 20px; border: none; font-weight: bold; background: white; transition: 0.2s; }
+        button:hover { background: #ddd; }
+        button.primary { background: #4CAF50; color: white; }
+        #status { background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; max-width: 400px; line-height: 1.5; backdrop-filter: blur(5px); }
+        .loading { color: #aaa; font-size: 0.9em; }
     </style>
     
     <script type="importmap">
     {
         "imports": {
             "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
-            "@mkkellogg/gaussian-splats-3d": "https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.3.3/build/gaussian-splats-3d.module.js"
+            "@mkkellogg/gaussian-splats-3d": "https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.3.0/build/gaussian-splats-3d.module.js",
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
         }
     }
     </script>
 </head>
 <body>
-
-<div id="upload-screen">
-    <div id="drop-zone">
-        <h1>Semantic Gaussian Nexus</h1>
-        <p>Drag & Drop your 3D file<br><span class="highlight">.ksplat</span> (推奨), .splat, .ply</p>
-        
-        <label class="btn-select">
-            <input type="file" id="file-input" accept=".ksplat,.splat,.ply" />
-            Select File
-        </label>
-
-        <div id="loading-text">Loading...</div>
-        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+    <div id="ui">
+        <div id="controls">
+            <input type="text" id="q" placeholder="例: レトロな建物, 静かな場所...">
+            <button id="btn-search">🔍 検索移動</button>
+            <button id="btn-snap" class="primary">👁️ 解説・記録</button>
+        </div>
+        <div id="status">街を歩いて「解説・記録」ボタンを押してください。<br>あなたの体験が地図になります。</div>
     </div>
-</div>
 
-<div id="ui-layer">
-    <input type="password" id="api-key" class="api-input" placeholder="OpenAI API Key (sk-...)" />
-    <button id="btn-scan" class="btn-analyze">👁️ AI Context Search</button>
-    <button id="btn-reset" class="btn-reset">📂 Open Another File</button>
-</div>
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+        import * as THREE from 'three';
+        import { Viewer } from '@mkkellogg/gaussian-splats-3d';
 
-<div id="info-card">
-    <h3 id="card-title">Title</h3>
-    <p id="card-desc">Description</p>
-</div>
+        // ==========================================
+        // ★ ここにAPIキーを入れる
+        // (必ずGoogle Cloudでリファラー制限をかけること！)
+        const API_KEY = "YOUR_GEMINI_API_KEY"; 
+        // ==========================================
 
-<script type="module">
-    import * as THREE from 'three';
-    import { Viewer } from '@mkkellogg/gaussian-splats-3d';
+        // Geminiの準備
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    let viewer = null;
-
-    // UI要素
-    const uploadScreen = document.getElementById('upload-screen');
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const uiLayer = document.getElementById('ui-layer');
-    const loadingBar = document.getElementById('loading-bar');
-    const loadingContainer = document.getElementById('loading-bar-container');
-    const loadingText = document.getElementById('loading-text');
-
-    // --- ファイルドラッグ＆ドロップ処理 ---
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) handleFile(e.target.files[0]);
-    });
-
-    function handleFile(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (!['ply', 'splat', 'ksplat'].includes(ext)) {
-            alert("対応していないファイル形式です。\n(.ksplat, .splat, .ply のみ対応)");
-            return;
-        }
-
-        // UI更新: ロード開始
-        loadingContainer.style.display = 'block';
-        loadingText.style.display = 'block';
-        fileInput.disabled = true;
-
-        // ブラウザ内URL生成 (サーバーアップロード不要)
-        const fileURL = URL.createObjectURL(file);
-        initViewer(fileURL);
-    }
-
-    function initViewer(url) {
-        viewer = new Viewer({
-            'cameraUp': [0, 1, 0],
-            'initialCameraPosition': [0, 1, 5],
-            'initialCameraLookAt': [0, 0, 0],
-            'splatAlphaRemovalThreshold': 5, // 背景除去の閾値
-        });
-
-        // シーン読み込み
-        viewer.addSplatScene(url, {
-            'showLoadingUI': false,
-            'onProgress': (percent) => {
-                loadingBar.style.width = percent + '%';
-                loadingText.innerText = `Loading ${Math.round(percent)}%`;
-            }
-        }).then(() => {
-            viewer.start();
-            // UI切り替えアニメーション
-            uploadScreen.style.opacity = 0;
-            setTimeout(() => {
-                uploadScreen.style.display = 'none';
-                uiLayer.style.display = 'flex';
-            }, 500);
-        }).catch(err => {
-            console.error(err);
-            alert("読み込みエラー: ファイルが壊れているか、メモリ不足です。");
-            location.reload();
-        });
-    }
-
-    // --- AI解析ロジック ---
-    const btnScan = document.getElementById('btn-scan');
-    const apiKeyInput = document.getElementById('api-key');
-    const infoCard = document.getElementById('info-card');
-
-    btnScan.addEventListener('click', async () => {
-        const apiKey = apiKeyInput.value.trim();
+        // 3Dビューアの準備
+        const viewer = new Viewer({ 'cameraUp': [0, 1, 0], 'initialCameraPosition': [0, 2, 5] });
         
-        if (!apiKey) {
-            alert("APIキーを入力してください（デモ用にダミーデータを表示します）");
-            showCard("Demo Result", "APIキーが入力されていないため、これはテスト表示です。実際はここにGPT-4oによる解析結果が表示されます。");
-            addMarker(viewer.camera.position);
-            return;
-        }
-
-        btnScan.disabled = true;
-        btnScan.innerHTML = "⏳ Thinking...";
-
-        try {
-            // 視点キャプチャ
-            const canvas = document.querySelector('canvas');
-            const imageBase64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
-
-            // OpenAI APIコール
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    messages: [
-                        {
-                            role: "user",
-                            content: [
-                                { type: "text", text: "この3D空間の風景について。Web3.0空間タグ用の「タイトル」と「解説(100文字以内)」をJSON形式 {\"title\": \"...\", \"description\": \"...\"} で作成してください。" },
-                                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-                            ]
-                        }
-                    ],
-                    response_format: { type: "json_object" }
-                })
+        // データの読み込み (GitHub上の city.ply を読む)
+        // なければデモデータを読み込む
+        viewer.addSplatScene('city.ply', { 'splatAlphaRemovalThreshold': 5 })
+            .catch(() => {
+                console.log("Local PLY not found, using demo.");
+                viewer.addSplatScene('https://raw.githubusercontent.com/mkkellogg/gaussian-splats-3d/main/assets/data/garden/garden.ply');
             });
+        viewer.start();
 
-            const data = await response.json();
-            if(data.error) throw new Error(data.error.message);
-            const content = JSON.parse(data.choices[0].message.content);
+        // 記憶用配列
+        let memories = [];
+        const statusDiv = document.getElementById('status');
 
-            showCard(content.title, content.description);
-            addMarker(viewer.camera.position);
+        // --- 機能1: 景色を見て記録する (Vision) ---
+        document.getElementById('btn-snap').addEventListener('click', async () => {
+            statusDiv.innerHTML = "<span class='loading'>AIが景色を解析中...</span>";
+            
+            try {
+                // 1. 画面を画像(Base64)に変換
+                const canvas = document.querySelector('canvas');
+                // 画質を少し落として軽量化
+                const imageBase64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+                
+                // カメラ情報の保存
+                const currentLoc = {
+                    pos: viewer.camera.position.clone(),
+                    rot: viewer.camera.rotation.clone()
+                };
 
-        } catch (e) {
-            alert("Error: " + e.message);
-        } finally {
-            btnScan.disabled = false;
-            btnScan.innerHTML = "👁️ AI Context Search";
-        }
-    });
+                // 2. Gemini Vision API に送信
+                const prompt = "この風景に見えるものを、構造物や雰囲気を含めて30文字程度の日本語で情緒的に描写してください。";
+                const result = await model.generateContent([
+                    prompt,
+                    { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
+                ]);
+                const text = result.response.text();
 
-    function showCard(title, desc) {
-        document.getElementById('card-title').innerText = title;
-        document.getElementById('card-desc').innerText = desc;
-        infoCard.style.display = 'block';
-        setTimeout(() => { infoCard.style.display = 'none'; }, 15000);
-    }
+                // 3. メモリに追加
+                memories.push({ id: memories.length, text: text, loc: currentLoc });
+                
+                statusDiv.innerHTML = `<strong>記録しました:</strong><br>${text}`;
 
-    function addMarker(pos) {
-        if (!viewer) return;
-        const geometry = new THREE.SphereGeometry(0.15, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00e5ff, opacity: 0.8, transparent: true });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.set(pos.x, pos.y, pos.z);
-        if(viewer.threeScene) viewer.threeScene.add(mesh);
-    }
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "エラー: APIキーの設定か、通信を確認してください。";
+            }
+        });
 
-    // リセット（別のファイルを開く）
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        location.reload();
-    });
+        // --- 機能2: 言葉で場所を探す (Reasoning) ---
+        document.getElementById('btn-search').addEventListener('click', async () => {
+            const query = document.getElementById('q').value;
+            if (!query) return;
+            if (memories.length === 0) {
+                statusDiv.innerText = "まだ記録がありません。まずは歩いて記録してください。";
+                return;
+            }
 
-</script>
+            statusDiv.innerHTML = "<span class='loading'>AIが記憶を探索中...</span>";
+
+            try {
+                // 4. 全ログをGeminiに渡して選ばせる
+                // (サーバーレスなので、毎回コンテキストとして送る)
+                const memoryList = memories.map(m => `ID:${m.id} 内容:${m.text}`).join("\n");
+                
+                const searchPrompt = `
+                ユーザーは「${query}」という場所を探しています。
+                以下の記録リストから、最も合致する場所のIDを1つだけ数字で選んでください。
+                合致するものがなければ -1 を返してください。
+
+                [記録リスト]
+                ${memoryList}
+                `;
+
+                const result = await model.generateContent(searchPrompt);
+                const answer = parseInt(result.response.text().trim());
+
+                if (!isNaN(answer) && answer !== -1) {
+                    const target = memories.find(m => m.id === answer);
+                    statusDiv.innerHTML = `<strong>発見！</strong><br>${target.text}`;
+                    
+                    // 移動
+                    viewer.camera.position.copy(target.loc.pos);
+                    viewer.camera.rotation.copy(target.loc.rot);
+                } else {
+                    statusDiv.innerText = "そのイメージに合う場所は見つかりませんでした。";
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "検索エラーが発生しました。";
+            }
+        });
+    </script>
 </body>
 </html>
